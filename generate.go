@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
+	"text/template"
 
 	"github.com/carlos7ags/folio/document"
 	"github.com/carlos7ags/folio/layout"
@@ -84,19 +86,48 @@ func generateApplication(cfg Config, id string) error {
 		return fmt.Errorf("creating %s: %w", dir, err)
 	}
 
-	cvPath := filepath.Join(dir, "cv.pdf")
+	cvFileName, err := renderFileName(cfg.CVFileName, defaultCVFileName, app)
+	if err != nil {
+		return fmt.Errorf("rendering cv file name: %w", err)
+	}
+	cvPath := filepath.Join(dir, cvFileName)
 	if err := renderPDF(cvTemplateHTML, app, cvPath); err != nil {
-		return fmt.Errorf("rendering cv.pdf: %w", err)
+		return fmt.Errorf("rendering %s: %w", cvFileName, err)
 	}
 	fmt.Printf("created %s\n", cvPath)
 
-	coverPath := filepath.Join(dir, "cover.pdf")
+	coverFileName, err := renderFileName(cfg.CoverFileName, defaultCoverFileName, app)
+	if err != nil {
+		return fmt.Errorf("rendering cover file name: %w", err)
+	}
+	coverPath := filepath.Join(dir, coverFileName)
 	if err := renderPDF(coverTemplateHTML, app, coverPath); err != nil {
-		return fmt.Errorf("rendering cover.pdf: %w", err)
+		return fmt.Errorf("rendering %s: %w", coverFileName, err)
 	}
 	fmt.Printf("created %s\n", coverPath)
 
 	return nil
+}
+
+// renderFileName executes nameTemplate (a go template, e.g.
+// "{{.CV.Personal.LastName}} {{.CV.Personal.FirstName}} - cv.pdf") against
+// app to produce a PDF file name. If nameTemplate is empty, fallback is
+// used as-is.
+func renderFileName(nameTemplate, fallback string, app Application) (string, error) {
+	if nameTemplate == "" {
+		return fallback, nil
+	}
+
+	tmpl, err := template.New("filename").Parse(nameTemplate)
+	if err != nil {
+		return "", fmt.Errorf("parsing file name template %q: %w", nameTemplate, err)
+	}
+
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, app); err != nil {
+		return "", fmt.Errorf("executing file name template %q: %w", nameTemplate, err)
+	}
+	return buf.String(), nil
 }
 
 // renderPDF executes an html/template against app and writes the result

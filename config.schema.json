@@ -20,6 +20,14 @@
       "type": "integer",
       "minimum": 1,
       "description": "HTTP request timeout in seconds used by `applyme fetch`."
+    },
+    "cvFileName": {
+      "type": "string",
+      "description": "Go template for the generated cv pdf's file name, executed with the Application (e.g. \"{{.CV.Personal.LastName}} {{.CV.Personal.FirstName}} - cv.pdf\"). Defaults to \"cv.pdf\" if empty."
+    },
+    "coverFileName": {
+      "type": "string",
+      "description": "Go template for the generated cover letter pdf's file name, executed with the Application (e.g. \"{{.CV.Personal.LastName}} {{.CV.Personal.FirstName}} - cover.pdf\"). Defaults to \"cover.pdf\" if empty."
     }
   }
 }
