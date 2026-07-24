@@ -22,6 +22,11 @@ func main() {
 			fmt.Fprintln(os.Stderr, "error:", err)
 			os.Exit(1)
 		}
+	case "generate":
+		if err := runGenerate(os.Args[2:]); err != nil {
+			fmt.Fprintln(os.Stderr, "error:", err)
+			os.Exit(1)
+		}
 	case "help", "-h", "--help":
 		printUsage()
 	default:
@@ -40,6 +45,7 @@ Usage:
 Commands:
   init [--force]           initialize a new applyme project in the current folder
   create [--force] <id>... create an application folder for one or more job ids
+  generate <id>...         generate cv.pdf and cover.pdf for one or more application ids
   help                     show this help message
 
 Flags:

@@ -1,7 +1,7 @@
 # applyme
 
 a cli tool that helps you stay sane while searching a job. currently only working for https://www.job-room.ch and my RAV process.
-It mainly helps my organizing your cv and cover letters as structured data (json), and generates pdfs based on your templates.
+It mainly helps organizing your cv and cover letters as structured data (json), and generates pdfs based on your templates.
 
 ## disclaimer
 
@@ -39,3 +39,11 @@ fetches the json from the unofficial api https://www.job-room.ch/jobadservice/ap
 the job.json should only store relevant informations not everything.
 
 note: a batch mode with multiple ids should be possible, so better prepare for that, but keep fetching sequencial, to prevent rate limiting.
+
+## create a cv and cover letter for an application
+
+```bash
+applyme generate {id}
+```
+
+generates your application assets for {id} out of templates and your structured data living under the specified {id}.
