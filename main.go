@@ -17,8 +17,8 @@ func main() {
 			fmt.Fprintln(os.Stderr, "error:", err)
 			os.Exit(1)
 		}
-	case "create":
-		if err := runCreate(os.Args[2:]); err != nil {
+	case "fetch":
+		if err := runFetch(os.Args[2:]); err != nil {
 			fmt.Fprintln(os.Stderr, "error:", err)
 			os.Exit(1)
 		}
@@ -43,11 +43,16 @@ Usage:
   applyme <command> [arguments]
 
 Commands:
-  init [--force]           initialize a new applyme project in the current folder
-  create [--force] <id>... create an application folder for one or more job ids
-  generate <id>...         generate cv.pdf and cover.pdf for one or more application ids
-  help                     show this help message
+  init [-f|--force]           initialize a new applyme project in the current folder
+  fetch [-f|--force] <id>...  fetch a job advertisement for one or more job ids
+  generate <id>...            generate cv.pdf and cover.pdf for one or more application ids
+  help                        show this help message
 
 Flags:
-  --force       overwrite existing files instead of skipping them`)
+  -f, --force            overwrite existing files instead of skipping them
+      --api-base-url     job-room.ch job advertisement API base url
+      --applications-dir folder applications are stored under
+      --request-timeout  http request timeout in seconds
+
+Settings default to config.json (created by init) and can be overridden per command with the flags above.`)
 }

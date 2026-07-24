@@ -12,7 +12,7 @@ func stripStrayBackslashEscapes(s string) string {
 	return jobRoomEscapedPunctuation.ReplaceAllString(s, "$1")
 }
 
-func sanitizeJob(job *Job) {
+func sanitizeJob(job *JobAdvertisement) {
 	for i := range job.JobContent.JobDescriptions {
 		d := &job.JobContent.JobDescriptions[i]
 		d.Title = stripStrayBackslashEscapes(d.Title)

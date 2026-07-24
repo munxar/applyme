@@ -21,21 +21,16 @@ import (
 type Application struct {
 	ID string
 
-	Applicant ApplicantInfo
-	Company   CompanyInfo
-	JobTitle  string
+	Job Job
 
 	CV          CV
 	CoverLetter CoverLetter
 }
 
-// ApplicantInfo is the sender side of an application: the person applying.
-type ApplicantInfo struct {
-	Name   string
-	Street string
-	City   string
-	Email  string
-	Phone  string
+// Job is the position being applied for, at a given company.
+type Job struct {
+	Title   string
+	Company CompanyInfo
 }
 
 // CompanyInfo is the recipient side of an application.
@@ -56,7 +51,9 @@ type CoverLetter struct {
 
 func runGenerate(args []string) error {
 	fs := flag.NewFlagSet("generate", flag.ContinueOnError)
-	if err := fs.Parse(args); err != nil {
+
+	cfg, err := loadConfig(fs, args)
+	if err != nil {
 		return err
 	}
 	ids := fs.Args()
@@ -67,7 +64,7 @@ func runGenerate(args []string) error {
 
 	var failed []string
 	for _, id := range ids {
-		if err := generateApplication(id); err != nil {
+		if err := generateApplication(cfg, id); err != nil {
 			fmt.Fprintf(os.Stderr, "error: %s: %v\n", id, err)
 			failed = append(failed, id)
 		}
@@ -79,10 +76,10 @@ func runGenerate(args []string) error {
 	return nil
 }
 
-func generateApplication(id string) error {
+func generateApplication(cfg Config, id string) error {
 	app := loadApplication(id)
 
-	dir := filepath.Join("applications", id)
+	dir := filepath.Join(cfg.ApplicationsDir, id)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return fmt.Errorf("creating %s: %w", dir, err)
 	}
@@ -127,35 +124,73 @@ func loadApplication(id string) Application {
 	return Application{
 		ID: id,
 
-		Applicant: ApplicantInfo{
-			Name:   "Jane Doe",
-			Street: "Musterstrasse 12",
-			City:   "8000 Zürich",
-			Email:  "jane.doe@example.com",
-			Phone:  "+41 79 123 45 67",
+		Job: Job{
+			Title: "Solution Architect - D365 & Power Platform",
+			Company: CompanyInfo{
+				Name:    "Zur Rose Suisse AG",
+				Street:  "Walzmühlestrasse 60",
+				City:    "8500 Frauenfeld",
+				Contact: "",
+			},
 		},
-
-		Company: CompanyInfo{
-			Name:    "Zur Rose Suisse AG",
-			Street:  "Walzmühlestrasse 60",
-			City:    "8500 Frauenfeld",
-			Contact: "",
-		},
-		JobTitle: "Solution Architect - D365 & Power Platform",
 
 		CV: CV{
-			Name:    "Jane Doe",
-			Email:   "jane.doe@example.com",
-			Phone:   "+41 79 123 45 67",
-			Summary: "Solution architect with 8+ years of experience designing scalable CRM and low-code platform solutions.",
-			Experience: []string{
-				"Solution Architect, Example AG (2021-present) - owns platform architecture for CRM and Power Platform.",
-				"Software Engineer, Sample GmbH (2017-2021) - built integrations and automations on Dynamics 365.",
+			Personal: Personal{
+				FirstName: "Jane",
+				LastName:  "Doe",
+				Address: Address{
+					Street:  "Musterstrasse 12",
+					Zip:     "8000",
+					City:    "Zürich",
+					Country: "Schweiz",
+				},
+				Email: "jane.doe@example.com",
+				Phone: "+41 79 123 45 67",
 			},
-			Education: []string{
-				"BSc Computer Science, ETH Zürich (2013-2017)",
+			Summary: []string{
+				"Solution architect with 8+ years of experience designing scalable CRM and low-code platform solutions.",
 			},
-			Skills: []string{"Dynamics 365", "Power Platform", "Azure Functions", "Solution Design", "Go", "TypeScript"},
+			Experience: []Experience{
+				{
+					Company: "Example AG",
+					Title:   "Solution Architect",
+					Start:   "01/2021",
+					Responsibilities: []string{
+						"owns platform architecture for CRM and Power Platform",
+					},
+				},
+				{
+					Company: "Sample GmbH",
+					Title:   "Software Engineer",
+					Start:   "01/2017",
+					End:     "12/2020",
+					Responsibilities: []string{
+						"built integrations and automations on Dynamics 365",
+					},
+				},
+			},
+			Education: []Education{
+				{
+					Institution: "ETH Zürich",
+					Degree:      "BSc Computer Science",
+					Start:       "09/2013",
+					End:         "06/2017",
+					Graduated:   true,
+				},
+			},
+			Skills: []SkillGroup{
+				{
+					Category: "Technologies",
+					Items: []Skill{
+						{Name: "Dynamics 365", Level: 3},
+						{Name: "Power Platform", Level: 3},
+						{Name: "Azure Functions", Level: 2},
+						{Name: "Solution Design", Level: 3},
+						{Name: "Go", Level: 2},
+						{Name: "TypeScript", Level: 2},
+					},
+				},
+			},
 		},
 
 		CoverLetter: CoverLetter{
@@ -184,31 +219,31 @@ const cvTemplateHTML = `<!DOCTYPE html>
   .skills { line-height: 1.6; }
 </style></head>
 <body>
-  <h1>{{.CV.Name}}</h1>
-  <p class="contact">{{.CV.Email}} &middot; {{.CV.Phone}}</p>
+  <h1>{{.CV.Personal.FirstName}} {{.CV.Personal.LastName}}</h1>
+  <p class="contact">{{.CV.Personal.Email}} &middot; {{.CV.Personal.Phone}}</p>
 
   {{if .CV.Summary}}
   <h2>Summary</h2>
-  <p>{{.CV.Summary}}</p>
+  {{range .CV.Summary}}<p>{{.}}</p>{{end}}
   {{end}}
 
   {{if .CV.Experience}}
   <h2>Experience</h2>
   <ul>
-    {{range .CV.Experience}}<li>{{.}}</li>{{end}}
+    {{range .CV.Experience}}<li>{{.Title}}, {{.Company}} ({{.Start}} - {{if .End}}{{.End}}{{else}}present{{end}})</li>{{end}}
   </ul>
   {{end}}
 
   {{if .CV.Education}}
   <h2>Education</h2>
   <ul>
-    {{range .CV.Education}}<li>{{.}}</li>{{end}}
+    {{range .CV.Education}}<li>{{.Degree}}, {{.Institution}} ({{.Start}} - {{.End}})</li>{{end}}
   </ul>
   {{end}}
 
   {{if .CV.Skills}}
   <h2>Skills</h2>
-  <p class="skills">{{range $i, $s := .CV.Skills}}{{if $i}} &middot; {{end}}{{$s}}{{end}}</p>
+  {{range .CV.Skills}}<p class="skills">{{range $i, $s := .Items}}{{if $i}} &middot; {{end}}{{$s.Name}}{{end}}</p>{{end}}
   {{end}}
 </body>
 </html>`
@@ -226,28 +261,28 @@ const coverTemplateHTML = `<!DOCTYPE html>
 </style></head>
 <body>
   <div class="sender">
-    {{.Applicant.Name}}<br>
-    {{.Applicant.Street}}<br>
-    {{.Applicant.City}}<br>
-    {{.Applicant.Email}} &middot; {{.Applicant.Phone}}
+    {{.CV.Personal.FirstName}} {{.CV.Personal.LastName}}<br>
+    {{.CV.Personal.Address.Street}}<br>
+    {{.CV.Personal.Address.Zip}} {{.CV.Personal.Address.City}}<br>
+    {{.CV.Personal.Email}} &middot; {{.CV.Personal.Phone}}
   </div>
 
   <div class="recipient">
-    {{.Company.Name}}<br>
-    {{if .Company.Contact}}{{.Company.Contact}}<br>{{end}}
-    {{.Company.Street}}<br>
-    {{.Company.City}}
+    {{.Job.Company.Name}}<br>
+    {{if .Job.Company.Contact}}{{.Job.Company.Contact}}<br>{{end}}
+    {{.Job.Company.Street}}<br>
+    {{.Job.Company.City}}
   </div>
 
   <div class="date">{{.CoverLetter.PlaceAndDate}}</div>
 
-  <p class="subject">Application: {{.JobTitle}}</p>
+  <p class="subject">Application: {{.Job.Title}}</p>
 
   <p>{{.CoverLetter.Salutation}}</p>
 
   {{range .CoverLetter.Paragraphs}}<p>{{.}}</p>
   {{end}}
 
-  <p class="closing">{{.CoverLetter.Closing}}<br>{{.Applicant.Name}}</p>
+  <p class="closing">{{.CoverLetter.Closing}}<br>{{.CV.Personal.FirstName}} {{.CV.Personal.LastName}}</p>
 </body>
 </html>`

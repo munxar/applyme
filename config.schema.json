@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/munxar/applyme/config.schema.json",
+  "title": "Config",
+  "description": "config.json as read by applyme.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "jobAdApiBaseUrl": {
+      "type": "string",
+      "format": "uri",
+      "description": "Base URL of the job-room.ch job advertisement API used by `applyme fetch`."
+    },
+    "applicationsDir": {
+      "type": "string",
+      "description": "Folder applications are stored under, relative to the project root."
+    },
+    "requestTimeoutSeconds": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "HTTP request timeout in seconds used by `applyme fetch`."
+    }
+  }
+}

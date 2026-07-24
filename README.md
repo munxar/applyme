@@ -26,17 +26,19 @@ todo: demo of help output
 applyme init
 ```
 
-initializes a project in the current folder with a template for cv.json, a .env for settings and api keys.
+initializes a project in the current folder with a template for cv.json and a config.json for settings, both with a matching json schema for editor tooling (autocomplete/validation).
 note: it'll warn you if the folder is not empty.
 
-## create a application
+settings in config.json (job-room api base url, applications folder, request timeout) can be overridden per command with flags, e.g. `applyme fetch --applications-dir other-folder {id}`.
+
+## fetch a job advertisement
 
 ```bash
-applyme create {id}
+applyme fetch {id}
 ```
 
-fetches the json from the unofficial api https://www.job-room.ch/jobadservice/api/jobAdvertisements/{id} and stores the content in a folder under "applications/{id} company name to identify application for humans/job.json" (id is assumed uuid v4 for now)
-the job.json should only store relevant informations not everything.
+fetches the json from the unofficial api https://www.job-room.ch/jobadservice/api/jobAdvertisements/{id} and stores the content in a folder under "applications/{id} company name to identify application for humans/job-advertisement.json" (id is assumed uuid v4 for now)
+the job-advertisement.json should only store relevant informations not everything.
 
 note: a batch mode with multiple ids should be possible, so better prepare for that, but keep fetching sequencial, to prevent rate limiting.
 

@@ -1,0 +1,152 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/munxar/applyme/cv.schema.json",
+  "title": "CV",
+  "description": "cv.json as read/written by applyme.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["personal"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "personal": { "$ref": "#/$defs/personal" },
+    "summary": {
+      "type": "array",
+      "description": "Summary paragraphs.",
+      "items": { "type": "string" }
+    },
+    "private": {
+      "type": "array",
+      "description": "Personal/private paragraphs (family, hobbies, ...), included at your discretion.",
+      "items": { "type": "string" }
+    },
+    "experience": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/experience" }
+    },
+    "education": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/education" }
+    },
+    "skills": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/skillGroup" }
+    }
+  },
+  "$defs": {
+    "personal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["first_name", "last_name", "address", "phone", "email"],
+      "properties": {
+        "title": { "type": "string", "description": "e.g. \"Senior Software Engineer\"" },
+        "first_name": { "type": "string" },
+        "last_name": { "type": "string" },
+        "birth_name": { "type": "string" },
+        "name_change_date": { "type": "string", "description": "DD.MM.YYYY" },
+        "date_of_birth": { "type": "string", "description": "DD.MM.YYYY" },
+        "place_of_birth": { "type": "string" },
+        "address": { "$ref": "#/$defs/address" },
+        "phone": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "nationality": { "type": "string" }
+      }
+    },
+    "address": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["street", "zip", "city", "country"],
+      "properties": {
+        "street": { "type": "string" },
+        "zip": { "type": "string" },
+        "city": { "type": "string" },
+        "country": { "type": "string" }
+      }
+    },
+    "experience": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["company", "title", "start"],
+      "properties": {
+        "company": { "type": "string" },
+        "parent_company": { "type": "string" },
+        "url": { "type": "string", "format": "uri" },
+        "location": { "type": "string" },
+        "title": { "type": "string" },
+        "employment_type": { "type": "string", "description": "e.g. \"Angestellt\", \"Nebenberuflich\"" },
+        "workload_percent": {
+          "type": "string",
+          "description": "A single percentage (\"80\") or a range (\"80-100\")."
+        },
+        "workload_note": { "type": "string" },
+        "start": { "type": "string", "description": "MM/YYYY" },
+        "end": { "type": "string", "description": "MM/YYYY, omit if ongoing" },
+        "description": { "type": "string" },
+        "responsibilities": { "type": "array", "items": { "type": "string" } },
+        "subjects": { "type": "array", "items": { "type": "string" } },
+        "stack": { "type": "array", "items": { "type": "string" } },
+        "projects": { "type": "array", "items": { "$ref": "#/$defs/project" } },
+        "hidden": {
+          "type": "boolean",
+          "description": "Exclude this entry from generated CVs by default."
+        }
+      }
+    },
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string" },
+        "client": { "type": "string" },
+        "url": { "type": "string", "format": "uri" },
+        "description": { "type": "string" },
+        "importance": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Higher ranks the project more relevant to lead with, 0 if unranked."
+        },
+        "roles": { "type": "array", "items": { "type": "string" } },
+        "stack": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "education": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["institution", "degree"],
+      "properties": {
+        "institution": { "type": "string" },
+        "degree": { "type": "string" },
+        "focus": { "type": "string" },
+        "start": { "type": "string", "description": "MM/YYYY" },
+        "end": { "type": "string", "description": "MM/YYYY" },
+        "graduated": { "type": "boolean" },
+        "graduation_date": { "type": "string", "description": "MM/YYYY" },
+        "certificate_date": { "type": "string", "description": "MM/YYYY" }
+      }
+    },
+    "skillGroup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["category", "items"],
+      "properties": {
+        "category": { "type": "string" },
+        "items": { "type": "array", "items": { "$ref": "#/$defs/skill" } }
+      }
+    },
+    "skill": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "level"],
+      "properties": {
+        "name": { "type": "string" },
+        "level": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3,
+          "description": "1 = basic, 2 = proficient, 3 = expert"
+        },
+        "note": { "type": "string" }
+      }
+    }
+  }
+}

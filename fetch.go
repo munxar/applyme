@@ -10,10 +10,8 @@ import (
 	"time"
 )
 
-const jobAdAPIBaseURL = "https://www.job-room.ch/jobadservice/api/jobAdvertisements"
-
-// Job mirrors the JobAdvertisement schema of the job-room.ch API.
-type Job struct {
+// JobAdvertisement mirrors the JobAdvertisement schema of the job-room.ch API.
+type JobAdvertisement struct {
 	ID                         string      `json:"id"`
 	CreatedTime                string      `json:"createdTime"`
 	UpdatedTime                string      `json:"updatedTime"`
@@ -144,39 +142,43 @@ type Publication struct {
 	CompanyAnonymous  bool   `json:"companyAnonymous"`
 }
 
-func runCreate(args []string) error {
-	fs := flag.NewFlagSet("create", flag.ContinueOnError)
-	force := fs.Bool("force", false, "overwrite existing job.json files with freshly fetched data")
-	if err := fs.Parse(args); err != nil {
+func runFetch(args []string) error {
+	fs := flag.NewFlagSet("fetch", flag.ContinueOnError)
+	var force bool
+	fs.BoolVar(&force, "force", false, "overwrite existing job-advertisement.json files with freshly fetched data")
+	fs.BoolVar(&force, "f", false, "overwrite existing job-advertisement.json files with freshly fetched data")
+
+	cfg, err := loadConfig(fs, args)
+	if err != nil {
 		return err
 	}
 	ids := fs.Args()
 
 	if len(ids) == 0 {
-		return fmt.Errorf("usage: applyme create [--force] <id> [<id> ...]")
+		return fmt.Errorf("usage: applyme fetch [-f|--force] <id> [<id> ...]")
 	}
 
-	client := &http.Client{Timeout: 10 * time.Second}
+	client := &http.Client{Timeout: time.Duration(cfg.RequestTimeoutSeconds) * time.Second}
 
 	var failed []string
 	// sequential on purpose: batch mode must not hammer the job-room api
 	for _, id := range ids {
-		if err := createApplication(client, id, *force); err != nil {
+		if err := fetchApplication(client, cfg, id, force); err != nil {
 			fmt.Fprintf(os.Stderr, "error: %s: %v\n", id, err)
 			failed = append(failed, id)
 		}
 	}
 
 	if len(failed) > 0 {
-		return fmt.Errorf("failed to create %d application(s): %v", len(failed), failed)
+		return fmt.Errorf("failed to fetch %d job advertisement(s): %v", len(failed), failed)
 	}
 	return nil
 }
 
-func createApplication(client *http.Client, id string, force bool) error {
+func fetchApplication(client *http.Client, cfg Config, id string, force bool) error {
 	// company name will be appended to the folder once we parse the fetched job data
-	dir := filepath.Join("applications", id)
-	jobPath := filepath.Join(dir, "job.json")
+	dir := filepath.Join(cfg.ApplicationsDir, id)
+	jobPath := filepath.Join(dir, "job-advertisement.json")
 
 	if !force {
 		if _, err := os.Stat(jobPath); err == nil {
@@ -185,7 +187,7 @@ func createApplication(client *http.Client, id string, force bool) error {
 		}
 	}
 
-	job, err := fetchJobAdvertisement(client, id)
+	job, err := fetchJobAdvertisement(client, cfg.JobAdAPIBaseURL, id)
 	if err != nil {
 		return err
 	}
@@ -206,8 +208,8 @@ func createApplication(client *http.Client, id string, force bool) error {
 	return nil
 }
 
-func fetchJobAdvertisement(client *http.Client, id string) (*Job, error) {
-	url := fmt.Sprintf("%s/%s", jobAdAPIBaseURL, id)
+func fetchJobAdvertisement(client *http.Client, baseURL, id string) (*JobAdvertisement, error) {
+	url := fmt.Sprintf("%s/%s", baseURL, id)
 
 	resp, err := client.Get(url)
 	if err != nil {
@@ -219,7 +221,7 @@ func fetchJobAdvertisement(client *http.Client, id string) (*Job, error) {
 		return nil, fmt.Errorf("unexpected status %s", resp.Status)
 	}
 
-	var job Job
+	var job JobAdvertisement
 	if err := json.NewDecoder(resp.Body).Decode(&job); err != nil {
 		return nil, fmt.Errorf("decoding response: %w", err)
 	}
