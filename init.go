@@ -79,6 +79,7 @@ func runInit(args []string) error {
 		{"cv.schema.json", cvSchemaJSON, 0644},
 		{"config.json", configJSON, 0644},
 		{"config.schema.json", configSchemaJSON, 0644},
+		{"application.schema.json", applicationSchemaJSON, 0644},
 	}
 
 	for _, f := range files {

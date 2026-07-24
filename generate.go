@@ -2,24 +2,28 @@ package main
 
 import (
 	"bytes"
+	_ "embed"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"text/template"
+	"time"
 
 	"github.com/carlos7ags/folio/document"
 	"github.com/carlos7ags/folio/layout"
 	"github.com/carlos7ags/folio/tmpl"
 )
 
+//go:embed application.schema.json
+var applicationSchemaJSON []byte
+
 // Application is the view model that drives cv.pdf and cover.pdf
-// generation. It merges the applicant's CV with the target job and the
-// cover letter text into the single shape the templates render from.
-//
-// TODO: read this from {id}/application.json once that file format
-// exists. For now loadApplication builds one in memory with placeholder
-// data so the pdf pipeline can be exercised end to end.
+// generation. It merges the applicant's full CV (cv.json) with the
+// application-specific data of {id}/application.json into the single
+// shape the templates render from.
 type Application struct {
 	ID string
 
@@ -29,26 +33,37 @@ type Application struct {
 	CoverLetter CoverLetter
 }
 
+// ApplicationData is the structure of {id}/application.json: the
+// application-specific data generate cannot derive from cv.json alone. Its
+// Personal field is a copy of cv.json's personal data taken at creation
+// time, so the cover letter keeps its own sender snapshot independent of
+// later cv.json edits.
+type ApplicationData struct {
+	Job         Job         `json:"job"`
+	Personal    Personal    `json:"personal"`
+	CoverLetter CoverLetter `json:"cover_letter"`
+}
+
 // Job is the position being applied for, at a given company.
 type Job struct {
-	Title   string
-	Company CompanyInfo
+	Title   string      `json:"title"`
+	Company CompanyInfo `json:"company"`
 }
 
 // CompanyInfo is the recipient side of an application.
 type CompanyInfo struct {
-	Name    string
-	Street  string
-	City    string
-	Contact string // e.g. "Ms. Jane Doe", empty if unknown
+	Name    string `json:"name"`
+	Street  string `json:"street"`
+	City    string `json:"city"`
+	Contact string `json:"contact,omitempty"` // e.g. "Jane Doe", empty if unknown
 }
 
 // CoverLetter holds the free-text parts of the cover letter.
 type CoverLetter struct {
-	PlaceAndDate string
-	Salutation   string
-	Paragraphs   []string
-	Closing      string
+	PlaceAndDate string   `json:"place_and_date"`
+	Salutation   string   `json:"salutation"`
+	Paragraphs   []string `json:"paragraphs"`
+	Closing      string   `json:"closing"`
 }
 
 func runGenerate(args []string) error {
@@ -79,11 +94,26 @@ func runGenerate(args []string) error {
 }
 
 func generateApplication(cfg Config, id string) error {
-	app := loadApplication(id)
-
 	dir := filepath.Join(cfg.ApplicationsDir, id)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return fmt.Errorf("creating %s: %w", dir, err)
+	}
+
+	cv, err := readCVFile()
+	if err != nil {
+		return err
+	}
+
+	data, err := loadOrCreateApplicationData(dir, cv)
+	if err != nil {
+		return err
+	}
+
+	app := Application{
+		ID:          id,
+		Job:         data.Job,
+		CV:          cv,
+		CoverLetter: data.CoverLetter,
 	}
 
 	cvFileName, err := renderFileName(cfg.CVFileName, defaultCVFileName, app)
@@ -148,92 +178,112 @@ func renderPDF(templateHTML string, app Application, outPath string) error {
 	return nil
 }
 
-// loadApplication stands in for reading {id}/application.json from disk.
-// It returns placeholder data shaped like a real application so the
-// generate pipeline can be built and exercised now.
-func loadApplication(id string) Application {
-	return Application{
-		ID: id,
+// loadOrCreateApplicationData reads {dir}/application.json. If it doesn't
+// exist yet, it creates one: personal contact data is copied from cv (so
+// the cover letter has a sender snapshot independent of later cv.json
+// edits), job is filled in from a sibling job-advertisement.json if one
+// was already fetched, and the cover letter body is left as generic
+// placeholder text for the user to rewrite.
+func loadOrCreateApplicationData(dir string, cv CV) (ApplicationData, error) {
+	path := filepath.Join(dir, "application.json")
 
-		Job: Job{
-			Title: "Solution Architect - D365 & Power Platform",
-			Company: CompanyInfo{
-				Name:    "Zur Rose Suisse AG",
-				Street:  "Walzmühlestrasse 60",
-				City:    "8500 Frauenfeld",
-				Contact: "",
-			},
-		},
+	raw, err := os.ReadFile(path)
+	if err == nil {
+		var data ApplicationData
+		if err := json.Unmarshal(raw, &data); err != nil {
+			return ApplicationData{}, fmt.Errorf("parsing %s: %w", path, err)
+		}
+		return data, nil
+	}
+	if !os.IsNotExist(err) {
+		return ApplicationData{}, fmt.Errorf("reading %s: %w", path, err)
+	}
 
-		CV: CV{
-			Personal: Personal{
-				FirstName: "Jane",
-				LastName:  "Doe",
-				Address: Address{
-					Street:  "Musterstrasse 12",
-					Zip:     "8000",
-					City:    "Zürich",
-					Country: "Schweiz",
-				},
-				Email: "jane.doe@example.com",
-				Phone: "+41 79 123 45 67",
-			},
-			Summary: []string{
-				"Solution architect with 8+ years of experience designing scalable CRM and low-code platform solutions.",
-			},
-			Experience: []Experience{
-				{
-					Company: "Example AG",
-					Title:   "Solution Architect",
-					Start:   "01/2021",
-					Responsibilities: []string{
-						"owns platform architecture for CRM and Power Platform",
-					},
-				},
-				{
-					Company: "Sample GmbH",
-					Title:   "Software Engineer",
-					Start:   "01/2017",
-					End:     "12/2020",
-					Responsibilities: []string{
-						"built integrations and automations on Dynamics 365",
-					},
-				},
-			},
-			Education: []Education{
-				{
-					Institution: "ETH Zürich",
-					Degree:      "BSc Computer Science",
-					Start:       "09/2013",
-					End:         "06/2017",
-					Graduated:   true,
-				},
-			},
-			Skills: []SkillGroup{
-				{
-					Category: "Technologies",
-					Items: []Skill{
-						{Name: "Dynamics 365", Level: 3},
-						{Name: "Power Platform", Level: 3},
-						{Name: "Azure Functions", Level: 2},
-						{Name: "Solution Design", Level: 3},
-						{Name: "Go", Level: 2},
-						{Name: "TypeScript", Level: 2},
-					},
-				},
-			},
-		},
+	data := newApplicationData(dir, cv)
 
-		CoverLetter: CoverLetter{
-			PlaceAndDate: "Zürich, 24. Juli 2026",
-			Salutation:   "Dear Hiring Team,",
-			Paragraphs: []string{
-				"I am writing to apply for the Solution Architect position on your CRM and Power Platform team. Your focus on turning requirements into consistent, scalable architectures matches exactly how I like to work.",
-				"In my current role I own the solution design for our CRM platform end to end - from data model to automation to integration - and I would bring that same structured, pragmatic approach to your team.",
-				"I would welcome the opportunity to discuss how my experience fits your plans.",
-			},
-			Closing: "Kind regards,",
+	schemaPath, err := filepath.Rel(dir, "application.schema.json")
+	if err != nil {
+		return ApplicationData{}, fmt.Errorf("resolving application schema path: %w", err)
+	}
+
+	body, err := marshalJSONIndent(struct {
+		Schema string `json:"$schema"`
+		ApplicationData
+	}{
+		Schema:          filepath.ToSlash(schemaPath),
+		ApplicationData: data,
+	})
+	if err != nil {
+		return ApplicationData{}, fmt.Errorf("marshaling application data: %w", err)
+	}
+	if err := os.WriteFile(path, body, 0644); err != nil {
+		return ApplicationData{}, fmt.Errorf("writing %s: %w", path, err)
+	}
+	fmt.Printf("created %s\n", path)
+
+	return data, nil
+}
+
+// newApplicationData builds the ApplicationData written for a fresh
+// application: basic (personal) data copied from cv, job filled in from a
+// sibling job-advertisement.json when present, and a generic cover letter
+// the user is expected to rewrite.
+func newApplicationData(dir string, cv CV) ApplicationData {
+	data := ApplicationData{
+		Personal:    cv.Personal,
+		CoverLetter: genericCoverLetter(cv),
+	}
+
+	if job, err := readJobAdvertisementFile(filepath.Join(dir, "job-advertisement.json")); err == nil {
+		data.Job = jobFromAdvertisement(job)
+	}
+
+	return data
+}
+
+// jobFromAdvertisement maps a fetched JobAdvertisement onto the Job shape
+// application.json stores.
+func jobFromAdvertisement(job *JobAdvertisement) Job {
+	var title string
+	if len(job.JobContent.JobDescriptions) > 0 {
+		title = job.JobContent.JobDescriptions[0].Title
+	}
+
+	company := job.JobContent.Company
+	street := strings.TrimSpace(company.Street + " " + company.HouseNumber)
+	city := strings.TrimSpace(company.PostalCode + " " + company.City)
+
+	var contact string
+	if pc := job.JobContent.PublicContact; pc != nil {
+		contact = strings.TrimSpace(pc.FirstName + " " + pc.LastName)
+	}
+
+	return Job{
+		Title: title,
+		Company: CompanyInfo{
+			Name:    company.Name,
+			Street:  street,
+			City:    city,
+			Contact: contact,
 		},
+	}
+}
+
+// genericCoverLetter returns generic, language-neutral placeholder cover
+// letter text seeded with the applicant's city and today's date.
+func genericCoverLetter(cv CV) CoverLetter {
+	placeAndDate := time.Now().Format("02.01.2006")
+	if city := cv.Personal.Address.City; city != "" {
+		placeAndDate = city + ", " + placeAndDate
+	}
+
+	return CoverLetter{
+		PlaceAndDate: placeAndDate,
+		Salutation:   "Dear Hiring Team,",
+		Paragraphs: []string{
+			"TODO: write why you are a great fit for this role.",
+		},
+		Closing: "Kind regards,",
 	}
 }
 

@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/munxar/applyme/application.schema.json",
+  "title": "Application",
+  "description": "application.json as read/written by applyme, living under applications/{id}/.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["job", "personal", "cover_letter"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "job": { "$ref": "#/$defs/job" },
+    "personal": { "$ref": "./cv.schema.json#/$defs/personal" },
+    "cover_letter": { "$ref": "#/$defs/coverLetter" }
+  },
+  "$defs": {
+    "job": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "company"],
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "The position being applied for."
+        },
+        "company": { "$ref": "#/$defs/company" }
+      }
+    },
+    "company": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "street", "city"],
+      "properties": {
+        "name": { "type": "string" },
+        "street": { "type": "string" },
+        "city": { "type": "string" },
+        "contact": {
+          "type": "string",
+          "description": "e.g. \"Jane Doe\", empty if unknown."
+        }
+      }
+    },
+    "coverLetter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["place_and_date", "salutation", "paragraphs", "closing"],
+      "properties": {
+        "place_and_date": {
+          "type": "string",
+          "description": "e.g. \"Zürich, 24.07.2026\""
+        },
+        "salutation": { "type": "string" },
+        "paragraphs": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "closing": { "type": "string" }
+      }
+    }
+  }
+}

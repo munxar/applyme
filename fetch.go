@@ -208,6 +208,21 @@ func fetchApplication(client *http.Client, cfg Config, id string, force bool) er
 	return nil
 }
 
+// readJobAdvertisementFile reads and parses a previously fetched
+// job-advertisement.json from disk. It returns an error (including
+// os.ErrNotExist, checkable with os.IsNotExist) if the file doesn't exist.
+func readJobAdvertisementFile(path string) (*JobAdvertisement, error) {
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	var job JobAdvertisement
+	if err := json.Unmarshal(raw, &job); err != nil {
+		return nil, fmt.Errorf("parsing %s: %w", path, err)
+	}
+	return &job, nil
+}
+
 func fetchJobAdvertisement(client *http.Client, baseURL, id string) (*JobAdvertisement, error) {
 	url := fmt.Sprintf("%s/%s", baseURL, id)
 

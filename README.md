@@ -49,3 +49,9 @@ applyme generate {id}
 ```
 
 generates your application assets for {id} out of templates and your structured data living under the specified {id}.
+
+if `applications/{id}/application.json` doesn't exist yet, it's created first: personal/contact data is copied from `cv.json`, the job is filled in from a sibling `job-advertisement.json` if you already ran `applyme fetch {id}`, and the cover letter body is left as generic placeholder text for you to rewrite. it comes with a matching json schema (`application.schema.json`, created by `applyme init`) for editor tooling.
+
+## license
+
+[MIT](LICENSE)
