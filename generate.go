@@ -21,6 +21,12 @@ import (
 //go:embed application.schema.json
 var applicationSchemaJSON []byte
 
+//go:embed templates/cv.html
+var cvTemplateHTML string
+
+//go:embed templates/cover.html
+var coverTemplateHTML string
+
 // Application is the view model that drives cv.pdf and cover.pdf
 // generation. It merges the applicant's full CV (cv.json) with the
 // application-specific data of {id}/application.json into the single
@@ -290,90 +296,3 @@ func genericCoverLetter(cv CV) CoverLetter {
 		Closing: "Kind regards,",
 	}
 }
-
-const cvTemplateHTML = `<!DOCTYPE html>
-<html>
-<head><style>
-  body { font-family: sans-serif; font-size: 11px; color: #1a1a1a; }
-  h1 { font-size: 24px; margin-bottom: 4px; }
-  .contact { color: #555555; margin-bottom: 20px; }
-  h2 { font-size: 14px; margin-top: 18px; margin-bottom: 6px; border-bottom: 1px solid #cccccc; padding-bottom: 2px; }
-  p { margin: 0 0 8px 0; line-height: 1.4; }
-  ul { margin: 0 0 8px 0; padding-left: 18px; }
-  li { margin-bottom: 4px; line-height: 1.4; }
-  .skills { line-height: 1.6; }
-</style></head>
-<body>
-  <h1>{{.CV.Personal.FirstName}} {{.CV.Personal.LastName}}</h1>
-  <p class="contact">{{.CV.Personal.Email}} &middot; {{.CV.Personal.Phone}}</p>
-
-  {{if .CV.Summary}}
-  <h2>Summary</h2>
-  {{range .CV.Summary}}<p>{{.}}</p>{{end}}
-  {{end}}
-
-  {{if .CV.Experience}}
-  <h2>Experience</h2>
-  <ul>
-    {{range .CV.Experience}}<li>{{.Title}}, {{.Company}} ({{.Start}} - {{if .End}}{{.End}}{{else}}present{{end}})</li>{{end}}
-  </ul>
-  {{end}}
-
-  {{if .CV.Education}}
-  <h2>Education</h2>
-  <ul>
-    {{range .CV.Education}}<li>{{.Degree}}, {{.Institution}} ({{.Start}} - {{.End}})</li>{{end}}
-  </ul>
-  {{end}}
-
-  {{if .CV.Skills}}
-  <h2>Skills</h2>
-  {{range .CV.Skills}}<p class="skills">{{range $i, $s := .Items}}{{if $i}} &middot; {{end}}{{$s.Name}}{{end}}</p>{{end}}
-  {{end}}
-</body>
-</html>`
-
-const coverTemplateHTML = `<!DOCTYPE html>
-<html>
-<head>
-	<style>	
-	@font-face { font-family: 'Inter'; src: url('/Users/saschaaeppli/Library/Fonts/Inter/Inter-Regular.ttf'); font-weight: 400 }
-	@font-face { font-family: 'Inter'; src: url('/Users/saschaaeppli/Library/Fonts/Inter/Inter-Bold.ttf'); font-weight: 700 }
-	@font-face { font-family: 'Inter'; src: url('/Users/saschaaeppli/Library/Fonts/Inter/Inter-Black.ttf'); font-weight: 900 }
-
-  body { font-family: 'Inter'; font-size: 18px; color: #1a1a1a; line-height: 1.5; }
-  .sender { margin-bottom: 2rem; }
-  .recipient { margin-bottom: 2rem; }
-  .date { text-align: right; margin-bottom: 2rem; }
-  .subject { font-weight: 900; margin-bottom: 1rem; }
-  p { margin: 0 0 1rem 0; }
-  .closing { margin-top: 2rem; }
-</style></head>
-<body>
-  <div class="sender">
-    {{.CV.Personal.FirstName}} {{.CV.Personal.LastName}}<br>
-    {{.CV.Personal.Address.Street}}<br>
-    {{.CV.Personal.Address.Zip}} {{.CV.Personal.Address.City}}<br>
-    {{.CV.Personal.Email}} <br>
-	{{.CV.Personal.Phone}}
-  </div>
-
-  <div class="recipient">
-    {{.Job.Company.Name}}<br>
-    {{if .Job.Company.Contact}}{{.Job.Company.Contact}}<br>{{end}}
-    {{.Job.Company.Street}}<br>
-    {{.Job.Company.City}}
-  </div>
-
-  <div class="date">{{.CoverLetter.PlaceAndDate}}</div>
-
-  <p class="subject">Application: {{.Job.Title}}</p>
-
-  <p>{{.CoverLetter.Salutation}}</p>
-
-  {{range .CoverLetter.Paragraphs}}<p>{{.}}</p>
-  {{end}}
-
-  <p class="closing">{{.CoverLetter.Closing}}<br>{{.CV.Personal.FirstName}} {{.CV.Personal.LastName}}</p>
-</body>
-</html>`

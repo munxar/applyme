@@ -1,0 +1,80 @@
+<!doctype html>
+<html>
+  <head>
+    <style>
+      @font-face {
+        font-family: "Inter";
+        src: url("/Users/saschaaeppli/Library/Fonts/Inter/Inter-Regular.ttf");
+        font-weight: 400;
+      }
+      @font-face {
+        font-family: "Inter";
+        src: url("/Users/saschaaeppli/Library/Fonts/Inter/Inter-Bold.ttf");
+        font-weight: 700;
+      }
+      @font-face {
+        font-family: "Inter";
+        src: url("/Users/saschaaeppli/Library/Fonts/Inter/Inter-Black.ttf");
+        font-weight: 900;
+      }
+
+      body {
+        font-family: "Inter";
+        font-size: 18px;
+        color: #1a1a1a;
+        line-height: 1.5;
+      }
+      .sender {
+        margin-bottom: 2rem;
+      }
+      .recipient {
+        margin-bottom: 2rem;
+      }
+      .date {
+        text-align: right;
+        margin-bottom: 2rem;
+      }
+      .subject {
+        font-weight: 900;
+        margin-bottom: 1rem;
+      }
+      p {
+        margin: 0 0 1rem 0;
+      }
+      .closing {
+        margin-top: 2rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="sender">
+      {{.CV.Personal.FirstName}} {{.CV.Personal.LastName}}<br />
+      {{.CV.Personal.Address.Street}}<br />
+      {{.CV.Personal.Address.Zip}} {{.CV.Personal.Address.City}}<br />
+      {{.CV.Personal.Email}} <br />
+      {{.CV.Personal.Phone}}
+    </div>
+
+    <div class="recipient">
+      {{.Job.Company.Name}}<br />
+      {{if .Job.Company.Contact}}{{.Job.Company.Contact}}<br />{{end}}
+      {{.Job.Company.Street}}<br />
+      {{.Job.Company.City}}
+    </div>
+
+    <div class="date">{{.CoverLetter.PlaceAndDate}}</div>
+
+    <p class="subject">Application: {{.Job.Title}}</p>
+
+    <p>{{.CoverLetter.Salutation}}</p>
+
+    {{range .CoverLetter.Paragraphs}}
+    <p>{{.}}</p>
+    {{end}}
+
+    <p class="closing">
+      {{.CoverLetter.Closing}}<br />{{.CV.Personal.FirstName}}
+      {{.CV.Personal.LastName}}
+    </p>
+  </body>
+</html>
