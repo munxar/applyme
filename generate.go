@@ -174,7 +174,7 @@ func renderPDF(templateHTML string, app Application, outPath string) error {
 		PageSize: document.PageSizeA4,
 		Margins:  &layout.Margins{Top: 56, Right: 56, Bottom: 56, Left: 56},
 		ConvertOpts: &html.Options{
-			AllowAbsolutePaths: true,
+			BaseFS: os.DirFS("."),
 		},
 	}
 
