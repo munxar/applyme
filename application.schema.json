@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/munxar/applyme/application.schema.json",
+  "$id": "application.schema.json",
   "title": "Application",
   "description": "application.json as read/written by applyme, living under applications/{id}/.",
   "type": "object",

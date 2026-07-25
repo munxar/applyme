@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/carlos7ags/folio/document"
+	"github.com/carlos7ags/folio/html"
 	"github.com/carlos7ags/folio/layout"
 	"github.com/carlos7ags/folio/tmpl"
 )
@@ -166,6 +167,9 @@ func renderPDF(templateHTML string, app Application, outPath string) error {
 	opts := &tmpl.Options{
 		PageSize: document.PageSizeA4,
 		Margins:  &layout.Margins{Top: 56, Right: 56, Bottom: 56, Left: 56},
+		ConvertOpts: &html.Options{
+			AllowAbsolutePaths: true,
+		},
 	}
 
 	doc, err := tmpl.RenderDocument(templateHTML, app, opts)
@@ -331,21 +335,27 @@ const cvTemplateHTML = `<!DOCTYPE html>
 
 const coverTemplateHTML = `<!DOCTYPE html>
 <html>
-<head><style>
-  body { font-family: sans-serif; font-size: 11px; color: #1a1a1a; line-height: 1.5; }
-  .sender { margin-bottom: 40px; }
-  .recipient { margin-bottom: 40px; }
-  .date { text-align: right; margin-bottom: 40px; }
-  .subject { font-weight: bold; margin-bottom: 16px; }
-  p { margin: 0 0 12px 0; }
-  .closing { margin-top: 24px; }
+<head>
+	<style>	
+	@font-face { font-family: 'Inter'; src: url('/Users/saschaaeppli/Library/Fonts/Inter/Inter-Regular.ttf'); font-weight: 400 }
+	@font-face { font-family: 'Inter'; src: url('/Users/saschaaeppli/Library/Fonts/Inter/Inter-Bold.ttf'); font-weight: 700 }
+	@font-face { font-family: 'Inter'; src: url('/Users/saschaaeppli/Library/Fonts/Inter/Inter-Black.ttf'); font-weight: 900 }
+
+  body { font-family: 'Inter'; font-size: 18px; color: #1a1a1a; line-height: 1.5; }
+  .sender { margin-bottom: 2rem; }
+  .recipient { margin-bottom: 2rem; }
+  .date { text-align: right; margin-bottom: 2rem; }
+  .subject { font-weight: 900; margin-bottom: 1rem; }
+  p { margin: 0 0 1rem 0; }
+  .closing { margin-top: 2rem; }
 </style></head>
 <body>
   <div class="sender">
     {{.CV.Personal.FirstName}} {{.CV.Personal.LastName}}<br>
     {{.CV.Personal.Address.Street}}<br>
     {{.CV.Personal.Address.Zip}} {{.CV.Personal.Address.City}}<br>
-    {{.CV.Personal.Email}} &middot; {{.CV.Personal.Phone}}
+    {{.CV.Personal.Email}} <br>
+	{{.CV.Personal.Phone}}
   </div>
 
   <div class="recipient">
